@@ -1,0 +1,50 @@
+# Cloud Storage App .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Flask
+instance/
+.webassets-cache
+
+# Environment variables
+.env
+
+# Sensitive files
+*.pem
+*.key
+*.crt
+
+# User uploaded files
+uploads/*
+!uploads/.gitkeep
+downloads/*
+!downloads/.gitkeep
+static/thumbnails/*
+!static/thumbnails/.gitkeep
+
+# Logs
+*.log
+logs/
+/var/log/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Deployment
+*.pid

@@ -1,0 +1,6 @@
+flask
+requests
+opencv-python
+pillow
+gunicorn
+pytz
