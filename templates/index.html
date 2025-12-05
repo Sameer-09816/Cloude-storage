@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Drive</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <!-- Top App Bar -->
+    <header class="top-bar">
+        <div class="top-bar-content">
+            <div class="logo-section">
+                <span class="material-icons menu-icon">menu</span>
+                <h1 class="app-title">Cloud Drive</h1>
+            </div>
+            <div class="top-actions">
+                <span class="material-icons action-icon" onclick="openUrlModal()">cloud_download</span>
+                <span class="material-icons action-icon" onclick="toggleSortMenu()">sort</span>
+                <a href="{{ url_for('history') }}" class="action-icon">
+                    <span class="material-icons">history</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="action-icon logout-btn">
+                    <span class="material-icons">logout</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Storage Indicator -->
+        <div class="storage-indicator">
+            <div class="storage-header">
+                <span class="material-icons storage-icon">storage</span>
+                <div class="storage-text">
+                    <span class="storage-label">Storage</span>
+                    <span class="storage-value">{{ storage.free_formatted }} available of {{ storage.total_formatted
+                        }}</span>
+                </div>
+            </div>
+            <div class="storage-bar-bg">
+                <div class="storage-bar-fill js-storage-bar" data-percent="{{ storage.percent_used }}"
+                    data-status="{% if storage.percent_used < 70 %}storage-ok{% elif storage.percent_used < 90 %}storage-warning{% else %}storage-critical{% endif %}">
+                </div>
+            </div>
+            <div class="storage-details">
+                <span>Used: {{ storage.used_formatted }} ({{ storage.percent_used }}%)</span>
+            </div>
+        </div>
+
+        <!-- Sort Info -->
+        <div class="sort-info" id="sort-text">
+            Sorted by Date (Newest First)
+        </div>
+
+        <div class="section-header">
+            <h2 class="section-title">My Videos & Files</h2>
+            <div class="view-toggle">
+                <span class="material-icons view-icon active" onclick="switchView('grid')">grid_view</span>
+                <span class="material-icons view-icon" onclick="switchView('list')">view_list</span>
+            </div>
+        </div>
+
+        <!-- Files Grid -->
+        <div id="files-container" class="files-container grid-view">
+            {% if files %}
+            {% for file in files %}
+            <div class="video-card" onclick="openFileWrapper(this)" data-id="{{ file.id }}" data-type="{{ file.type }}"
+                data-name="{{ file.name }}" data-optimized="{{ file.optimized or '' }}">
+
+                <div class="video-thumbnail-container">
+                    {% if file.thumbnail %}
+                    <img src="{{ url_for('static', filename='thumbnails/' + file.thumbnail) }}" alt="{{ file.name }}"
+                        class="video-thumbnail" loading="lazy">
+                    {% else %}
+                    <div
+                        class="video-thumbnail-placeholder {% if file.type not in ['upload', 'download'] %}image-placeholder{% endif %}">
+                        <span class="material-icons placeholder-icon">
+                            {% if file.type in ['upload', 'download'] %}play_circle_filled{% else %}image{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <div class="video-overlay">
+                        <span class="material-icons play-icon">play_circle_outline</span>
+                    </div>
+
+                    <div class="video-menu" onclick="showFileMenuWrapper(event, this)" data-id="{{ file.id }}"
+                        data-type="{{ file.type }}" data-name="{{ file.name }}">
+                        <span class="material-icons menu-icon">more_vert</span>
+                    </div>
+
+                    <!-- Watch Progress -->
+                    {% if file.watch_percentage and file.watch_percentage > 0 %}
+                    <div class="watch-progress-bar">
+                        <div class="watch-progress-fill js-watch-bar" data-width="{{ file.watch_percentage }}"></div>
+                    </div>
+                    {% endif %}
+
+                    <div class="video-duration">{{ file.size|filesizeformat }}</div>
+                </div>
+
+                <div class="video-info">
+                    <div class="video-title">{{ file.name }}</div>
+                    <div class="video-meta">
+                        <span class="video-date">{{ file.upload_date }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <span class="material-icons empty-icon">cloud_off</span>
+                <div class="empty-text">No files yet</div>
+                <div class="empty-subtext">Tap + to upload or download videos</div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-item active">
+            <span class="material-icons">cloud</span>
+            <span class="nav-label">Cloud</span>
+        </div>
+        <div class="nav-item" onclick="navigateToWrapper(this)" data-url="{{ url_for('history') }}">
+            <span class="material-icons">history</span>
+            <span class="nav-label">History</span>
+        </div>
+        <div class="nav-item">
+            <span class="material-icons">share</span>
+            <span class="nav-label">Shared</span>
+        </div>
+        <div class="nav-item">
+            <span class="material-icons">person</span>
+            <span class="nav-label">Me</span>
+        </div>
+    </nav>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="toggleFabMenu()">
+        <span class="material-icons fab-icon">add</span>
+    </button>
+
+    <!-- FAB Menu -->
+    <div id="fab-menu" class="fab-menu hidden">
+        <div class="fab-backdrop" onclick="toggleFabMenu()"></div>
+        <div class="fab-actions">
+            <div class="fab-action" onclick="document.getElementById('file-upload').click()">
+                <span class="fab-label">Upload File</span>
+                <span class="material-icons">upload_file</span>
+            </div>
+            <div class="fab-action" onclick="openUrlModal()">
+                <span class="fab-label">Download from URL</span>
+                <span class="material-icons">link</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="file-upload" style="display: none" onchange="handleFileUpload(this)">
+
+    <!-- URL Download Modal -->
+    <div id="url-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeUrlModal()"></div>
+        <div class="modal-content">
+            <h3 class="modal-title">Download from URL</h3>
+            <input type="text" id="url-input" class="modal-input" placeholder="Paste video URL here">
+            <div class="modal-actions">
+                <button class="btn-text" onclick="closeUrlModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitUrlDownload()">Download</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sort Modal -->
+    <div id="sort-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="toggleSortMenu()"></div>
+        <div class="modal-content sort-menu-content">
+            <h3 class="modal-title">Sort By</h3>
+            <div class="sort-options">
+                <div class="sort-option" onclick="changeSortOrder('name', 'asc')">
+                    <span class="material-icons">sort_by_alpha</span>
+                    <span>Name (A-Z)</span>
+                </div>
+                <div class="sort-option" onclick="changeSortOrder('name', 'desc')">
+                    <span class="material-icons">sort_by_alpha</span>
+                    <span>Name (Z-A)</span>
+                </div>
+                <div class="sort-option" onclick="changeSortOrder('date', 'desc')">
+                    <span class="material-icons">date_range</span>
+                    <span>Date (Newest First)</span>
+                </div>
+                <div class="sort-option" onclick="changeSortOrder('date', 'asc')">
+                    <span class="material-icons">date_range</span>
+                    <span>Date (Oldest First)</span>
+                </div>
+                <div class="sort-option" onclick="changeSortOrder('size', 'desc')">
+                    <span class="material-icons">straighten</span>
+                    <span>Size (Largest First)</span>
+                </div>
+                <div class="sort-option" onclick="changeSortOrder('size', 'asc')">
+                    <span class="material-icons">straighten</span>
+                    <span>Size (Smallest First)</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-text" onclick="toggleSortMenu()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Player Modal -->
+    <div id="video-modal" class="video-player-modal hidden">
+        <div class="video-player-container">
+            <div class="video-player-header">
+                <span class="material-icons close-btn" onclick="closeVideoModal()">arrow_back</span>
+                <div class="player-title" id="video-title">Video Title</div>
+                <span class="material-icons close-btn">more_vert</span>
+            </div>
+            <div class="video-player-wrapper">
+                <video id="video-player" controls playsinline>
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Notification -->
+    <div id="progress-container" class="progress-container hidden">
+        <div class="progress-card">
+            <div class="progress-header">
+                <span class="material-icons">cloud_download</span>
+                <h3>Downloading...</h3>
+            </div>
+            <div class="progress-bar-bg">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <div class="progress-info">
+                <span id="progress-status">Connecting...</span>
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Menu (Bottom Sheet style) -->
+    <div id="file-menu" class="bottom-sheet hidden">
+        <div class="bottom-sheet-backdrop" onclick="closeFileMenu()"></div>
+        <div class="bottom-sheet-content">
+            <div class="bottom-sheet-header"></div>
+            <div class="menu-option" onclick="deleteCurrentFile()">
+                <span class="material-icons">delete</span>
+                <span>Delete</span>
+            </div>
+            <div class="menu-option" onclick="closeFileMenu()">
+                <span class="material-icons">close</span>
+                <span>Cancel</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Global constants for sort info
+        const CURRENT_SORT = '{{ current_sort }}';
+        const CURRENT_ORDER = '{{ current_order }}';
+
+        // Init dynamic styles
+        document.addEventListener('DOMContentLoaded', function () {
+            // Storage bar
+            const storageBar = document.querySelector('.js-storage-bar');
+            if (storageBar) {
+                storageBar.style.width = storageBar.getAttribute('data-percent') + '%';
+                storageBar.classList.add(storageBar.getAttribute('data-status'));
+            }
+
+            // Watch progress bars
+            const watchBars = document.querySelectorAll('.js-watch-bar');
+            watchBars.forEach(bar => {
+                bar.style.width = bar.getAttribute('data-width') + '%';
+            });
+        });
+
+        // Wrapper functions
+        function openFileWrapper(element) {
+            openFile(
+                element.getAttribute('data-id'),
+                element.getAttribute('data-type'),
+                element.getAttribute('data-name'),
+                element.getAttribute('data-optimized')
+            );
+        }
+
+        function showFileMenuWrapper(event, element) {
+            showFileMenu(
+                event,
+                element.getAttribute('data-id'),
+                element.getAttribute('data-type'),
+                element.getAttribute('data-name')
+            );
+        }
+
+        function navigateToWrapper(element) {
+            window.location.href = element.getAttribute('data-url');
+        }
+    </script>
+</body>
+
+</html>
